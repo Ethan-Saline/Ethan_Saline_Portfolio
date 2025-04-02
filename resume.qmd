@@ -29,6 +29,19 @@ __Brigham Young University Idaho__
 - Data Science Major, Statistics Minor
 
 
+## Certificates
+
+`2024`
+__Stanford University__
+
+- Machine Learning
+- Supervised Learning
+- Unsupervised Learning
+- Advanced Algorithms
+
+
+
+
 <!-- ### Footer
 
 Last updated: May 2013 -->
