@@ -1,7 +1,7 @@
 ---
-title: "Client Report - [Insert Project Title]"
-subtitle: "Course DS 250"
-author: "[STUDENT NAME]"
+title: "Predicting the NBA Champion with Machine Learning"
+subtitle: ""
+author: "Ethan Saline"
 format:
   html:
     self-contained: true
@@ -25,4 +25,4 @@ execute:
     
 ---
 
-### Paste in a template
+## The Data
