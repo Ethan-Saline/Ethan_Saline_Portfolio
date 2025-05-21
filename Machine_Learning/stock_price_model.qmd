@@ -1,0 +1,246 @@
+---
+title: "Predicting Raise in Stock Prices With Machine Learning"
+subtitle: ""
+author: "Ethan Saline"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute: 
+  warning: false
+    
+---
+
+## Import The Libraries and Explaining the Model
+
+Random forest is resistant to overfitting, can find non linear correlations and run quickly
+yfinance lets us pull finace data quickly
+
+```{python}
+# Import libraries
+import pandas as pd
+import yfinance as yf
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
+```
+
+we will track a specific stock (^GSPC)
+```{python}
+#choose the stock
+sp500 =yf.Ticker("^GSPC")
+
+#track it
+sp500 = sp500.history(period="max")
+sp500.head()
+```
+
+this is time series data, behold
+```{python}
+sp500.index
+```
+
+graph raise in price and time
+```{python}
+sp500.plot.line(y="Close", use_index=True)
+```
+
+delete useless columns
+```{python}
+del sp500["Dividends"]
+del sp500["Stock Splits"]
+```
+
+create a new column so we can guess tomorrow's price
+```{python}
+sp500["Tomorrow"] = sp500["Close"].shift(-1)
+sp500.head()
+```
+
+make target column to be whether the stock rose or fell. We only want to know if we should sell or buy
+```{python}
+sp500["Target"] = (sp500["Tomorrow"] > sp500['Close']).astype(int)
+sp500.head()
+```
+
+the market has changed fundamentally several times. lets remove all super old data to make predictions based on the now
+```{python}
+sp500 = sp500.loc["1990-01-01":].copy()
+sp500
+```
+
+## Train the Model
+
+Since this is time series data we cant use cross validation, which would do great here on our training set but terrible in the real world. This is because it ignores the time series nature of the data and will use future data to predict the past. This is leakage and will ruin the model
+```{python}
+# n_estimators is number of trees, higher is better, 100 is low but we want it to be quick
+# min_sample_split is a protection to obverfitting, higher number less acurate model
+# random_state is a seed
+
+clf = RandomForestClassifier(n_estimators=100, min_samples_split=100, random_state=1)
+
+train = sp500.iloc[:-100]
+test = sp500.iloc[-100:]  # this is just for the baseline split, will do a better split later
+
+predictors = ["Close","High","Open","Volume","Low"]
+
+clf.fit(train[predictors], train["Target"])
+```
+
+Lets look at the predictions
+```{python}
+initial_predictions = clf.predict(test[predictors])
+
+initial_predictions = pd.Series(initial_predictions, index = test.index)
+
+initial_predictions
+```
+
+Since the right answers are just as important as teh wrong answers we will use precision to judge this model
+```{python}
+precision_score(test["Target"], initial_predictions)
+```
+
+Since this model has a 58% precision it is slightly better than randomly guessing, which is 50%
+
+Lets compare the predictions (orange) to the actual results (blue)
+```{python}
+# axis=1 means treat each one as a column
+combined = pd.concat([test["Target"], initial_predictions], axis=1)
+
+combined.plot()
+```
+
+```{python}
+initial_predictions.value_counts()
+```
+
+## Backtesting
+
+Lets start backtesting to see if it improves our model
+
+This will take 10 years of data and train the model to guess the 11th year. Then it uses 11 years to predict the 12th, and so on. 
+```{python}
+#define the functions
+
+def predict(train, test, predictors, model):
+  model.fit(train[predictors], train["Target"])
+  predictions = model.predict(test[predictors])
+  predictions = pd.Series(predictions, index = test.index, name="Predictions")
+  combined = pd.concat([test["Target"], predictions], axis=1)
+  return combined
+
+# start=2500 is 10 years of data
+# Step = 250 is a year
+
+def backtest(data, model, predictors, start=2500, step=250):
+  # list of data frames for a single year
+  all_predictions = []
+
+  for i in range(start, data.shape[0], step):
+    train = data.iloc[0:i].copy()
+    test = data.iloc[i:(i+step)].copy()
+    predictions = predict(train, test, predictors, model)
+    all_predictions.append(predictions)
+
+  return pd.concat(all_predictions)
+```
+
+```{python}
+# use our data, model and chosen columns, per the backtest method to get new predictions
+predictions = backtest(sp500, clf, predictors)
+
+predictions.Predictions.value_counts()
+```
+
+```{python}
+predictions.Target.value_counts() / predictions.shape[0]
+```
+
+These results are much more varied than the last that were 85% stock raise predictions. These predictions are only 53% in the positive
+
+```{python}
+precision_score(predictions["Target"],predictions["Predictions"])
+```
+
+Even though our answers are much more varied, the precision is actually lower
+
+
+## Creating new Features
+
+Since our model is only running on what the stocks sold at and when it would be best to make new features. We will model a few off of horizons that stock traders use to predict the market themselves
+
+We will look at the trends for the last 2 days, trading week, 3 months, year and 4 years
+```{python}
+# these are useful days that human analysists use to look at the data
+# we calculyte the mean close price for the last 2 days, 5 days (a trading week), the last 3 months or so (60), last year (250) and last 4 years (1000)
+horizons = [2,5,60,250,1000]
+new_predictors = []
+
+for horizon in horizons:
+  rolling_averages = sp500.rolling(horizon).mean()
+
+  ratio_column = f"Close_{horizon}"
+  sp500[ratio_column] = sp500.Close / rolling_averages.Close
+
+  trend_column = f"Trend_{horizon}"
+  sp500[trend_column] = sp500.shift(1).rolling(horizon).sum()["Target"]
+
+  new_predictors += [ratio_column, trend_column]
+```
+
+This creates 4 years at the start that do not have prior data to use and are now filled with N/As, lets cut them. Notice how the start data is now different.
+```{python}
+sp500 = sp500.dropna()
+sp500
+```
+
+## New Model
+
+Our last model had low parameters because we wanted it to run quickly. Lets make a better model now
+```{python}
+new_model = RandomForestClassifier(n_estimators=200, min_samples_split=50,random_state=42)
+```
+
+Lets also change the predictions. Lets set it so instead of guessing whether it raises or lowers it should guess the probability that it was raise. Then we only accept answers that have a 60% change of raising 
+```{python}
+def predict(train, test, predictors, model):
+  new_model.fit(train[predictors], train["Target"])
+
+  predictions = model.predict_proba(test[predictors])[:,1] # Predict_proba returns probability that row equal 1 or 0 as opposed to just getting a 1 or 0. Second column of this is that stock price goes up
+  predictions[predictions >= .6] =1 # this is a custom threshold. It needs a 60% chance to output a 1
+  predictions[predictions < .6] =0
+
+  predictions = pd.Series(predictions, index = test.index, name="Predictions")
+  combined = pd.concat([test["Target"], predictions], axis=1)
+
+  return combined
+```
+
+
+```{python}
+predictions = backtest(sp500, new_model, new_predictors)  # you will notice we have stopped using the original predictors, like Open and Close. These are absolute numbers and not very informative to our model
+
+predictions.Predictions.value_counts()
+```
+
+
+```{python}
+precision_score(predictions.Target, predictions.Predictions)
+```
+
+We can see that the precision is still lower than the original model, however our chances of having a correctly attributed raise in stock is now higher. 
