@@ -238,9 +238,3 @@ predictions = backtest(sp500, new_model, new_predictors)  # you will notice we h
 predictions.Predictions.value_counts()
 ```
 
-
-```{python}
-precision_score(predictions.Target, predictions.Predictions)
-```
-
-We can see that the precision is still lower than the original model, however our chances of having a correctly attributed raise in stock is now higher. 

@@ -6,42 +6,36 @@ title: Ethan Saline's CV
 Data Science Student
 
 <div id="webaddress">
-<a href="www.linkedin.com/in/ethan-saline-6615852b6">Linkedin</a>
-| <a href="add_URL">add_URL HERE</a>
+<a href="www.linkedin.com/in/ethan-saline">Linkedin</a>
+| <a href="https://github.com/Ethan-Saline/Ethan_Saline_Portfolio.git">Github</a>
 </div>
 
+## SKILLS
+Machine Learning: Tensorflow, Optimizing Models, Pipelining
+Data Science: Pandas, NumPy, SciPy
+Data Visualization: GGPlot, Matplotlib, Seaborn
+Big Data & Databases: MySQL, SQLite
+Spoken Languages: Portuguese (Fluent), English (Native)
+Other: JIRA, CI/CD
 
-## Currently
+## EXPERIENCE
+BYUI Math/Data Science Lab - Tutor
+SEPTEMBER 2024 - PRESENT
+Assisted students in developing problem-solving skills and mathematical reasoning focused in Calculus
+Church of Jesus Christ of Latter-Day Saints, São Paulo - Missionary
+OCTOBER 2021 - OCTOBER 2023
+Developed fluency in Portuguese and cross-cultural communication skills.
 
-Calculus and Statistics tutor at BYUI
+## EDUCATION
+Brigham Young University Idaho - Data Science Major, Statistics Minor
+APRIL 2024 - OCTOBER 2026
 
+## CERTIFICATIONS
+Brigham Young University Idaho, OCTOBER 2026
+Machine Learning
 
-### Research interests
-
-Machine Learning, Data Science, Video Game Developement
-
-
-## Education
-
-`2024-2026`
-__Brigham Young University Idaho__
-
-- Data Science Major, Statistics Minor
-
-
-## Certificates
-
-`2024`
-__Stanford University__
-
-- Machine Learning
-- Supervised Learning
-- Unsupervised Learning
-- Advanced Algorithms
-
-
-
-
-<!-- ### Footer
-
-Last updated: May 2013 -->
+Stanford University, FEBRUARY 2024
+Machine Learning
+Advanced Learning Algorithms
+Unsupervised Learning, Recommenders, Reinforcement Learning
+Supervised Machine Learning: Regression and Classification 
