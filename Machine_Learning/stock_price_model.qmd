@@ -31,6 +31,10 @@ Random forest is resistant to overfitting, can find non linear correlations and 
 yfinance lets us pull finace data quickly
 
 ```{python}
+!pip install yfinace
+```
+
+```{python}
 # Import libraries
 import pandas as pd
 import yfinance as yf
