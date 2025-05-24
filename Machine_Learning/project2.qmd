@@ -111,6 +111,17 @@ Stochastic Nonlinear Optimization for Maintenance Scheduling
 
 Goal: Minimize maintenance cost while keeping the average health score above a threshold.
 
+
+Defines a mock cost function that:
+
+Takes a maintenance interval (days).
+
+Simulates linear degradation from 1 to 0 over 1000 units.
+
+Checks how many times the health at maintenance points is below 0.5 (bad health), penalizing such schedules heavily.
+
+Returns total cost balancing maintenance frequency and penalties.
+
 ```{python}
 from scipy.optimize import differential_evolution
 
