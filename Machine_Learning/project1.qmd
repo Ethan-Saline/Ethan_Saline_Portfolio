@@ -1,5 +1,5 @@
 ---
-title: "Predicting Raise in Stock Prices With Machine Learning"
+title: "Stock Price Trend Prediction with Portfolio Optimization"
 subtitle: ""
 author: "Ethan Saline"
 format:
@@ -29,10 +29,6 @@ execute:
 
 Random forest is resistant to overfitting, can find non linear correlations and run quickly
 yfinance lets us pull finace data quickly
-
-```{python}
-!pip install yfinace
-```
 
 ```{python}
 # Import libraries
