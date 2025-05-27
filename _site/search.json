@@ -46,7 +46,7 @@
     "href": "resume.html",
     "title": "Ethan Saline’s CV",
     "section": "",
-    "text": "Data Science Student\n\nLinkedin | add_URL HERE\n\n\n\nCalculus and Statistics tutor at BYUI\n\n\nMachine Learning, Data Science, Video Game Developement\n\n\n\n\n2024-2026 Brigham Young University Idaho\n\nData Science Major, Statistics Minor\n\n\n\n\n2024 Stanford University\n\nMachine Learning\nSupervised Learning\nUnsupervised Learning\nAdvanced Algorithms"
+    "text": "Data Science Student\n\nLinkedin | Github\n\n\n\nMachine Learning: Tensorflow, Optimizing Models, Pipelining Data Science: Pandas, NumPy, SciPy Data Visualization: GGPlot, Matplotlib, Seaborn Big Data & Databases: MySQL, SQLite Spoken Languages: Portuguese (Fluent), English (Native) Other: JIRA, CI/CD\n\n\n\nBYUI Math/Data Science Lab - Tutor SEPTEMBER 2024 - PRESENT Assisted students in developing problem-solving skills and mathematical reasoning focused in Calculus Church of Jesus Christ of Latter-Day Saints, São Paulo - Missionary OCTOBER 2021 - OCTOBER 2023 Developed fluency in Portuguese and cross-cultural communication skills.\n\n\n\nBrigham Young University Idaho - Data Science Major, Statistics Minor APRIL 2024 - OCTOBER 2026\n\n\n\nBrigham Young University Idaho, OCTOBER 2026 Machine Learning\nStanford University, FEBRUARY 2024 Machine Learning Advanced Learning Algorithms Unsupervised Learning, Recommenders, Reinforcement Learning Supervised Machine Learning: Regression and Classification"
   },
   {
     "objectID": "resume.html#currently",
@@ -60,7 +60,7 @@
     "href": "resume.html#education",
     "title": "Ethan Saline’s CV",
     "section": "",
-    "text": "2024-2026 Brigham Young University Idaho\n\nData Science Major, Statistics Minor"
+    "text": "Brigham Young University Idaho - Data Science Major, Statistics Minor APRIL 2024 - OCTOBER 2026"
   },
   {
     "objectID": "resume.html#certificates",
@@ -470,5 +470,26 @@
       "Story Telling",
       "Project 5"
     ]
+  },
+  {
+    "objectID": "resume.html#skills",
+    "href": "resume.html#skills",
+    "title": "Ethan Saline’s CV",
+    "section": "",
+    "text": "Machine Learning: Tensorflow, Optimizing Models, Pipelining Data Science: Pandas, NumPy, SciPy Data Visualization: GGPlot, Matplotlib, Seaborn Big Data & Databases: MySQL, SQLite Spoken Languages: Portuguese (Fluent), English (Native) Other: JIRA, CI/CD"
+  },
+  {
+    "objectID": "resume.html#experience",
+    "href": "resume.html#experience",
+    "title": "Ethan Saline’s CV",
+    "section": "",
+    "text": "BYUI Math/Data Science Lab - Tutor SEPTEMBER 2024 - PRESENT Assisted students in developing problem-solving skills and mathematical reasoning focused in Calculus Church of Jesus Christ of Latter-Day Saints, São Paulo - Missionary OCTOBER 2021 - OCTOBER 2023 Developed fluency in Portuguese and cross-cultural communication skills."
+  },
+  {
+    "objectID": "resume.html#certifications",
+    "href": "resume.html#certifications",
+    "title": "Ethan Saline’s CV",
+    "section": "",
+    "text": "Brigham Young University Idaho, OCTOBER 2026 Machine Learning\nStanford University, FEBRUARY 2024 Machine Learning Advanced Learning Algorithms Unsupervised Learning, Recommenders, Reinforcement Learning Supervised Machine Learning: Regression and Classification"
   }
 ]

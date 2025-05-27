@@ -1,0 +1,510 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "---\n",
+        "title: \"Stock Price Trend Prediction with Portfolio Optimization\"\n",
+        "subtitle: \"\"\n",
+        "author: \"Ethan Saline\"\n",
+        "format:\n",
+        "  html:\n",
+        "    self-contained: true\n",
+        "    page-layout: full\n",
+        "    title-block-banner: true\n",
+        "    toc: true\n",
+        "    toc-depth: 3\n",
+        "    toc-location: body\n",
+        "    number-sections: false\n",
+        "    html-math-method: katex\n",
+        "    code-fold: true\n",
+        "    code-summary: \"Show the code\"\n",
+        "    code-overflow: wrap\n",
+        "    code-copy: hover\n",
+        "    code-tools:\n",
+        "        source: false\n",
+        "        toggle: true\n",
+        "        caption: See code\n",
+        "execute: \n",
+        "  warning: false\n",
+        "    \n",
+        "---\n",
+        "\n",
+        "\n",
+        "## Import The Libraries and Explaining the Model\n",
+        "\n",
+        "Random forest is resistant to overfitting, can find non linear correlations and run quickly\n",
+        "yfinance lets us pull finace data quickly\n"
+      ],
+      "id": "e8bb8a63"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# Import libraries\n",
+        "import pandas as pd\n",
+        "import yfinance as yf\n",
+        "from sklearn.ensemble import RandomForestClassifier\n",
+        "from sklearn.metrics import precision_score\n",
+        "from sklearn.metrics import recall_score"
+      ],
+      "id": "83d55f54",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "we will track a specific stock (^GSPC)"
+      ],
+      "id": "ed8acb1f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#choose the stock\n",
+        "sp500 =yf.Ticker(\"^GSPC\")\n",
+        "\n",
+        "#track it\n",
+        "sp500 = sp500.history(period=\"max\")\n",
+        "sp500.head()"
+      ],
+      "id": "92af222a",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "this is time series data, behold"
+      ],
+      "id": "22bc485f"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "sp500.index"
+      ],
+      "id": "6ae31c63",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "graph raise in price and time"
+      ],
+      "id": "c88366c6"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "sp500.plot.line(y=\"Close\", use_index=True)"
+      ],
+      "id": "51b2c7f3",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "delete useless columns"
+      ],
+      "id": "f0dba7d8"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "del sp500[\"Dividends\"]\n",
+        "del sp500[\"Stock Splits\"]"
+      ],
+      "id": "0915a033",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "create a new column so we can guess tomorrow's price"
+      ],
+      "id": "175d4996"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "sp500[\"Tomorrow\"] = sp500[\"Close\"].shift(-1)\n",
+        "sp500.head()"
+      ],
+      "id": "85e09637",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "make target column to be whether the stock rose or fell. We only want to know if we should sell or buy"
+      ],
+      "id": "2f6c27c2"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "sp500[\"Target\"] = (sp500[\"Tomorrow\"] > sp500['Close']).astype(int)\n",
+        "sp500.head()"
+      ],
+      "id": "4f1b8f84",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "the market has changed fundamentally several times. lets remove all super old data to make predictions based on the now"
+      ],
+      "id": "36eb508b"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "sp500 = sp500.loc[\"1990-01-01\":].copy()\n",
+        "sp500"
+      ],
+      "id": "65057a2c",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Train the Model\n",
+        "\n",
+        "Since this is time series data we cant use cross validation, which would do great here on our training set but terrible in the real world. This is because it ignores the time series nature of the data and will use future data to predict the past. This is leakage and will ruin the model"
+      ],
+      "id": "94d1ced8"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# n_estimators is number of trees, higher is better, 100 is low but we want it to be quick\n",
+        "# min_sample_split is a protection to obverfitting, higher number less acurate model\n",
+        "# random_state is a seed\n",
+        "\n",
+        "clf = RandomForestClassifier(n_estimators=100, min_samples_split=100, random_state=1)\n",
+        "\n",
+        "train = sp500.iloc[:-100]\n",
+        "test = sp500.iloc[-100:]  # this is just for the baseline split, will do a better split later\n",
+        "\n",
+        "predictors = [\"Close\",\"High\",\"Open\",\"Volume\",\"Low\"]\n",
+        "\n",
+        "clf.fit(train[predictors], train[\"Target\"])"
+      ],
+      "id": "10c9dc52",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Lets look at the predictions"
+      ],
+      "id": "73ca8e96"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "initial_predictions = clf.predict(test[predictors])\n",
+        "\n",
+        "initial_predictions = pd.Series(initial_predictions, index = test.index)\n",
+        "\n",
+        "initial_predictions"
+      ],
+      "id": "5a6cdac0",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Since the right answers are just as important as teh wrong answers we will use precision to judge this model"
+      ],
+      "id": "45c3f3ed"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "precision_score(test[\"Target\"], initial_predictions)"
+      ],
+      "id": "7b8fc737",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Since this model has a 58% precision it is slightly better than randomly guessing, which is 50%\n",
+        "\n",
+        "Lets compare the predictions (orange) to the actual results (blue)"
+      ],
+      "id": "f48c5c13"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# axis=1 means treat each one as a column\n",
+        "combined = pd.concat([test[\"Target\"], initial_predictions], axis=1)\n",
+        "\n",
+        "combined.plot()"
+      ],
+      "id": "c60c2cf3",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "initial_predictions.value_counts()"
+      ],
+      "id": "0af72ba6",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## Backtesting\n",
+        "\n",
+        "Lets start backtesting to see if it improves our model\n",
+        "\n",
+        "This will take 10 years of data and train the model to guess the 11th year. Then it uses 11 years to predict the 12th, and so on. "
+      ],
+      "id": "ae9f11bf"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "#define the functions\n",
+        "\n",
+        "def predict(train, test, predictors, model):\n",
+        "  model.fit(train[predictors], train[\"Target\"])\n",
+        "  predictions = model.predict(test[predictors])\n",
+        "  predictions = pd.Series(predictions, index = test.index, name=\"Predictions\")\n",
+        "  combined = pd.concat([test[\"Target\"], predictions], axis=1)\n",
+        "  return combined\n",
+        "\n",
+        "# start=2500 is 10 years of data\n",
+        "# Step = 250 is a year\n",
+        "\n",
+        "def backtest(data, model, predictors, start=2500, step=250):\n",
+        "  # list of data frames for a single year\n",
+        "  all_predictions = []\n",
+        "\n",
+        "  for i in range(start, data.shape[0], step):\n",
+        "    train = data.iloc[0:i].copy()\n",
+        "    test = data.iloc[i:(i+step)].copy()\n",
+        "    predictions = predict(train, test, predictors, model)\n",
+        "    all_predictions.append(predictions)\n",
+        "\n",
+        "  return pd.concat(all_predictions)"
+      ],
+      "id": "8bdb5877",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# use our data, model and chosen columns, per the backtest method to get new predictions\n",
+        "predictions = backtest(sp500, clf, predictors)\n",
+        "\n",
+        "predictions.Predictions.value_counts()"
+      ],
+      "id": "47d08bfb",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "predictions.Target.value_counts() / predictions.shape[0]"
+      ],
+      "id": "c8fff361",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "These results are much more varied than the last that were 85% stock raise predictions. These predictions are only 53% in the positive\n"
+      ],
+      "id": "bce19309"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "precision_score(predictions[\"Target\"],predictions[\"Predictions\"])"
+      ],
+      "id": "a6434402",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Even though our answers are much more varied, the precision is actually lower\n",
+        "\n",
+        "\n",
+        "## Creating new Features\n",
+        "\n",
+        "Since our model is only running on what the stocks sold at and when it would be best to make new features. We will model a few off of horizons that stock traders use to predict the market themselves\n",
+        "\n",
+        "We will look at the trends for the last 2 days, trading week, 3 months, year and 4 years"
+      ],
+      "id": "ace59ff4"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "# these are useful days that human analysists use to look at the data\n",
+        "# we calculyte the mean close price for the last 2 days, 5 days (a trading week), the last 3 months or so (60), last year (250) and last 4 years (1000)\n",
+        "horizons = [2,5,60,250,1000]\n",
+        "new_predictors = []\n",
+        "\n",
+        "for horizon in horizons:\n",
+        "  rolling_averages = sp500.rolling(horizon).mean()\n",
+        "\n",
+        "  ratio_column = f\"Close_{horizon}\"\n",
+        "  sp500[ratio_column] = sp500.Close / rolling_averages.Close\n",
+        "\n",
+        "  trend_column = f\"Trend_{horizon}\"\n",
+        "  sp500[trend_column] = sp500.shift(1).rolling(horizon).sum()[\"Target\"]\n",
+        "\n",
+        "  new_predictors += [ratio_column, trend_column]"
+      ],
+      "id": "06c356b5",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "This creates 4 years at the start that do not have prior data to use and are now filled with N/As, lets cut them. Notice how the start data is now different."
+      ],
+      "id": "1e8d3956"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "sp500 = sp500.dropna()\n",
+        "sp500"
+      ],
+      "id": "7e80e0c5",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "## New Model\n",
+        "\n",
+        "Our last model had low parameters because we wanted it to run quickly. Lets make a better model now"
+      ],
+      "id": "f11ae785"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "new_model = RandomForestClassifier(n_estimators=200, min_samples_split=50,random_state=42)"
+      ],
+      "id": "c26a04c1",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {},
+      "source": [
+        "Lets also change the predictions. Lets set it so instead of guessing whether it raises or lowers it should guess the probability that it was raise. Then we only accept answers that have a 60% change of raising "
+      ],
+      "id": "778f8553"
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "def predict(train, test, predictors, model):\n",
+        "  new_model.fit(train[predictors], train[\"Target\"])\n",
+        "\n",
+        "  predictions = model.predict_proba(test[predictors])[:,1] # Predict_proba returns probability that row equal 1 or 0 as opposed to just getting a 1 or 0. Second column of this is that stock price goes up\n",
+        "  predictions[predictions >= .6] =1 # this is a custom threshold. It needs a 60% chance to output a 1\n",
+        "  predictions[predictions < .6] =0\n",
+        "\n",
+        "  predictions = pd.Series(predictions, index = test.index, name=\"Predictions\")\n",
+        "  combined = pd.concat([test[\"Target\"], predictions], axis=1)\n",
+        "\n",
+        "  return combined"
+      ],
+      "id": "5bc8a256",
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {},
+      "source": [
+        "predictions = backtest(sp500, new_model, new_predictors)  # you will notice we have stopped using the original predictors, like Open and Close. These are absolute numbers and not very informative to our model\n",
+        "\n",
+        "predictions.Predictions.value_counts()"
+      ],
+      "id": "d9f4f646",
+      "execution_count": null,
+      "outputs": []
+    }
+  ],
+  "metadata": {
+    "kernelspec": {
+      "name": "python3",
+      "language": "python",
+      "display_name": "Python 3 (ipykernel)",
+      "path": "C:\\Users\\ethan\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\\LocalCache\\local-packages\\share\\jupyter\\kernels\\python3"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 5
+}
